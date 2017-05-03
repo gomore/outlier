@@ -16,10 +16,12 @@
   (analyzer/summary (freqs ref-file) (freqs target-file)))
 
 (defn analysis-sort-fn
-  [{:keys [index actual-count]}]
-  (if (Double/isFinite index)
-    [(/ 1 index) (/ 1 actual-count)]
-    [0 (/ 1 actual-count)]))
+  [occurences? {:keys [index actual-count]}]
+  (let [index-factor (if (Double/isFinite index) (/ 1 index) 0)
+        count-factor (/ 1 actual-count)]
+    (if occurences?
+      [count-factor index-factor]
+      [index-factor count-factor])))
 
 (defn print-analysis-line
   [{:keys [element index actual-count expected-count]}]
@@ -62,7 +64,8 @@ Options:
 ")
 
 (def cli-options
-  [["-h" "--help"]])
+  [["-o" "--occurences" "Sort according to occurences, not index"]
+   ["-h" "--help"]])
 
 (defn -main [& args]
   (let [{:keys [options arguments summary]} (parse-opts args cli-options)
@@ -73,6 +76,6 @@ Options:
         (println summary)
         (println))
       (->> (perform-analysis ref-file target-file)
-           (sort-by analysis-sort-fn)
+           (sort-by (partial analysis-sort-fn (:occurences options)))
            (map print-analysis-line)
            doall))))
